@@ -1,0 +1,24 @@
+{
+  "name": "limelight-purge",
+  "version": "1.0.0",
+  "description": "limelight purge wrapper",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arielshad/limelight-purge.git"
+  },
+  "keywords": [
+    "limelight",
+    "purge",
+    "cdn"
+  ],
+  "author": "Ariel Shadkhan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/arielshad/limelight-purge/issues"
+  },
+  "homepage": "https://github.com/arielshad/limelight-purge#readme"
+}
