@@ -26,23 +26,34 @@ SECURITY_HEADER_TOKEN = 'X-LLNW-Security-Token'
 const serviceUrlGenerator = (accountName)=> `http://purge.llnw.com/purge/v1/account/${accountName}/requests`;
 
 class LimeLightPurge{
+    static generator(json={}){
+        if(!json.email || !json.patterns ){
+            throw new Error("Invalid json provided")
+        }
 
-    static generator(){
+        let _$ = {
+            accountName : process.env.LIMELIGHT_ACCOUNT_NAME,
+            username: process.env.LIMELIGHT_USERNAME,
+            sharedKey: process.env.LIMELIGHT_KEY,
+            json
+        }
 
+        return new LimeLightPurge(_$.accountName, _$.username, _$.sharedKey, _$.json)
     }
 
-     constructor(
-         accountName,
-         username,
-         sharedKey,
-         json={}
-     ){
+    /**
+     *
+     * @param accountName Limelight account name ("shortname")
+     * @param username Limelight username
+     * @param sharedKey Limelight shared key associated with username
+     * @param json Object with 2 mandatory fields
+     */
+    constructor(accountName, username, sharedKey, json={}, debug = false){
          if(typeof sharedKey !== 'string'){
              throw new Error('Please provide sharedKey')
          }
 
-         //TODO
-         if(!(typeof json === "object" && !Array.isArray(json))){
+         if(!(typeof json === "object" && !Array.isArray(json) && json.email && json.email.subject && json.email.to && Array.isArray(json.patterns))){
              throw new Error('Please provide valid json (payload) ')
          }
 
@@ -52,9 +63,15 @@ class LimeLightPurge{
         this._json = json;
         this._serviceUrl = serviceUrlGenerator(this._accountName);
         this._timestamp = (new Date()).getTime();
-    }
+        this._requestBody = this.generateRequestBody();
+        this._debug = debug;
 
-    //REQ_METHOD+URL+TIMESTAMP+JSON
+        if(this._debug){
+            console.log(this._requestBody)
+        }
+     }
+
+
     buildTokenDataString(){
          return `${POST}${this._serviceUrl}${this._timestamp}${JSON.stringify(this._json)}`;
     }
@@ -68,7 +85,7 @@ class LimeLightPurge{
 
     generateHeadersRequestOptions() {
          let _tokenString = this.buildTokenDataString();
-        console.log("_tokenString", _tokenString)
+        // console.log("_tokenString", _tokenString)
         return {
             // url: this._serviceUrl,
             headers: {
@@ -88,48 +105,24 @@ class LimeLightPurge{
 
     }
 
+
     async run(){
-        let data = this.generateRequestBody();
         return new Promise((resolve, reject)=>{
-            Request(data, function(error, response, body) {
-                if (!error && response.statusCode === 200) {
-                    resolve(body);
-                } else {
+            Request(this._requestBody, function(error, response, body) {
+                if (error || response.statusCode < 200 || response.statusCode >= 300) {
+
+                    if(this._debug){
+                        console.log(error, response, body)
+                    }
+
                     reject(error);
+                }else{
+                    resolve(body);
                 }
             })
         })
     }
 
 }
-
-
-
-let patterns = [
-    {
-        pattern: "http://anyclip-lre-player-dev.s3.amazonaws.com/config/*",
-        evict: true,
-        exact: false,
-        incqs: false
-    },
-    {
-        pattern: "http://anyclip-lre-player-dev.s3.amazonaws.com/config/!*!/!*",
-        evict: true,
-        exact: false,
-        incqs: false
-    },
-    {
-        pattern: "http://anyclip-lre-player-dev.s3.amazonaws.com/config/!*!/!*!/!*",
-        evict: true,
-        exact: false,
-        incqs: false
-    }
-]
-
-let email = {
-    subject: "Purge Done.",
-    to: "ariels@anyclip.com"
-}
-
 
 module.exports = LimeLightPurge;
